@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { TOOLS } from '@/lib/tools-registry'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://toolify.io'
+  const base = 'https://toolify-iota-gules.vercel.app'
   const now = new Date()
 
   const toolRoutes = TOOLS.map((tool) => ({
@@ -19,3 +19,4 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
   ]
 }
+
