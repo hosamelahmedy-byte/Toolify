@@ -1,0 +1,21 @@
+{
+  "name": "Toolify — Free Online Tools",
+  "short_name": "Toolify",
+  "description": "Free online tools for developers, writers & creators. Word counter, PDF tools, calculators & more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09091a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Word Counter", "url": "/tools/word-counter", "description": "Count words & analyze text" },
+    { "name": "PDF Merge",    "url": "/tools/pdf-merge",    "description": "Merge multiple PDFs" },
+    { "name": "BMI Calculator","url": "/tools/bmi-calculator","description": "Calculate your BMI" },
+    { "name": "All Tools",    "url": "/tools",              "description": "Browse all free tools" }
+  ]
+}
