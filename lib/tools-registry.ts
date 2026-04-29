@@ -386,6 +386,21 @@ export const TOOLS: Tool[] = [
   },
 ]
 
+  // ── AI-Powered Tools ──────────────────────────────────────
+  {
+    id: 'ai-text-enhancer',
+    slug: 'ai-text-enhancer',
+    name: 'AI Text Enhancer',
+    description: 'Fix grammar, improve writing flow, simplify, formalize, or shorten your text instantly using Llama 3.1 AI. Free, no signup.',
+    category: 'ai-content',
+    icon: Wand2,
+    color: 'from-violet-500 to-purple-600',
+    accentColor: '139, 92, 246',
+    tags: ['AI', 'grammar', 'writing', 'text enhancer', 'paraphrase', 'Llama', 'free'],
+    featured: true,
+    new: true,
+    popular: false,
+  },
 // ── Helpers ───────────────────────────────────────────────
 
 export function getToolsByCategory(category: ToolCategory) {
