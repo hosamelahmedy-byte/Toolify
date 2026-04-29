@@ -8,7 +8,7 @@ import './globals.css'
 // ============================================================
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://toolify.io'),
+  metadataBase: new URL('https://toolify-iota-gules.vercel.app'),
   title: {
     default: 'Toolify — Free Online Tools for Developers & Creators',
     template: '%s | Toolify',
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     'web tools', 'text analyzer', 'hash generator', 'color converter',
     'unit converter', 'loan calculator', 'age calculator',
   ],
-  authors: [{ name: 'Toolify', url: 'https://toolify.io' }],
+  authors: [{ name: 'Toolify', url: 'https://toolify-iota-gules.vercel.app' }],
   creator: 'Toolify',
   publisher: 'Toolify',
   applicationName: 'Toolify',
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 
   // ── Canonical ────────────────────────────────────────────
   alternates: {
-    canonical: 'https://toolify.io',
+    canonical: 'https://toolify-iota-gules.vercel.app',
   },
 
   // ── Robots ───────────────────────────────────────────────
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://toolify.io',
+    url: 'https://toolify-iota-gules.vercel.app',
     siteName: 'Toolify',
     title: 'Toolify — Free Online Tools for Developers & Creators',
     description:
@@ -118,14 +118,14 @@ const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Toolify',
-  url: 'https://toolify.io',
+  url: 'https://toolify-iota-gules.vercel.app',
   description: 'Free online tools for developers, writers, and creators.',
   inLanguage: 'en',
   potentialAction: {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: 'https://toolify.io/search?q={search_term_string}',
+      urlTemplate: 'https://toolify-iota-gules.vercel.app/search?q={search_term_string}',
     },
     'query-input': 'required name=search_term_string',
   },
@@ -135,8 +135,8 @@ const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Toolify',
-  url: 'https://toolify.io',
-  logo: 'https://toolify.io/logo.png',
+  url: 'https://toolify-iota-gules.vercel.app',
+  logo: 'https://toolify-iota-gules.vercel.app/logo.png',
   description: 'Provider of free online developer and creator tools.',
   sameAs: [],
 }

@@ -3,6 +3,7 @@ import { Zap } from 'lucide-react'
 
 const FOOTER_LINKS = {
   Tools: [
+    { href: '/tools/qr-code-generator', label: 'QR Code Generator' },
     { href: '/tools/word-counter', label: 'Word Counter' },
     { href: '/tools/bmi-calculator', label: 'BMI Calculator' },
     { href: '/tools/json-to-typebox', label: 'JSON → TypeBox' },
@@ -16,7 +17,7 @@ const FOOTER_LINKS = {
   ],
   Legal: [
     { href: '/privacy', label: 'Privacy Policy' },
-    { href: '/terms', label: 'Terms of Use' },
+    { href: '/terms', label: 'Terms of Service' },
   ],
 }
 

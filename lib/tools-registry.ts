@@ -22,6 +22,8 @@ import {
   ImageIcon,
   FilePlus,
   ShieldCheck,
+  QrCode,
+  Type,
 } from 'lucide-react'
 
 // ============================================================
@@ -338,6 +340,48 @@ export const TOOLS: Tool[] = [
     accentColor: '16, 185, 129',
     tags: ['Zod', 'TypeBox', 'JSON', 'TypeScript', 'schema'],
     featured: true,
+    new: true,
+  },
+
+  // ── New Tools ──────────────────────────────────────────────
+  {
+    id: 'qr-code-generator',
+    slug: 'qr-code-generator',
+    name: 'QR Code Generator',
+    description: 'Generate custom QR codes for URLs, WiFi, email, phone, SMS & text. Custom colors, instant PNG download.',
+    category: 'dev',
+    icon: QrCode,
+    color: 'from-emerald-500 to-teal-600',
+    accentColor: '16, 185, 129',
+    tags: ['QR code', 'QR', 'generator', 'WiFi', 'URL', 'free'],
+    featured: true,
+    new: true,
+    popular: true,
+  },
+  {
+    id: 'case-converter',
+    slug: 'case-converter',
+    name: 'Case Converter',
+    description: 'Convert text between 13 formats: UPPERCASE, lowercase, Title Case, camelCase, PascalCase, snake_case & more.',
+    category: 'dev',
+    icon: Type,
+    color: 'from-blue-500 to-indigo-600',
+    accentColor: '99, 102, 241',
+    tags: ['case converter', 'camelCase', 'snake_case', 'text', 'format'],
+    featured: true,
+    new: true,
+  },
+  {
+    id: 'lorem-ipsum-generator',
+    slug: 'lorem-ipsum-generator',
+    name: 'Lorem Ipsum Generator',
+    description: 'Generate Lorem Ipsum placeholder text by paragraphs, sentences, words, or bytes. Optional HTML wrapping.',
+    category: 'ai-content',
+    icon: AlignLeft,
+    color: 'from-violet-500 to-purple-600',
+    accentColor: '139, 92, 246',
+    tags: ['lorem ipsum', 'placeholder text', 'dummy text', 'filler'],
+    featured: false,
     new: true,
   },
 ]

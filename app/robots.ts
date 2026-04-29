@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/', '/_next/'],
     },
-    sitemap: 'https://toolify.io/sitemap.xml',
+    sitemap: 'https://toolify-iota-gules.vercel.app/sitemap.xml',
   }
 }
