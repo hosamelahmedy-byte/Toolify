@@ -384,8 +384,6 @@ export const TOOLS: Tool[] = [
     featured: false,
     new: true,
   },
-]
-
   // ── AI-Powered Tools ──────────────────────────────────────
   {
     id: 'ai-text-enhancer',
@@ -401,6 +399,8 @@ export const TOOLS: Tool[] = [
     new: true,
     popular: false,
   },
+]
+
 // ── Helpers ───────────────────────────────────────────────
 
 export function getToolsByCategory(category: ToolCategory) {
