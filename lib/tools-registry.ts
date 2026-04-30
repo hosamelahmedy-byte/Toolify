@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   QrCode,
   Type,
+  FileEdit,
 } from 'lucide-react'
 
 // ============================================================
@@ -385,6 +386,30 @@ export const TOOLS: Tool[] = [
     new: true,
   },
   // ── AI-Powered Tools ──────────────────────────────────────
+  {
+    id: 'cover-letter-generator',
+    slug: 'cover-letter-generator',
+    name: 'AI Cover Letter Generator',
+    description: 'Generate a professional, tailored cover letter in seconds. Paste the job description and your experience — AI does the rest. Free, no signup.',
+    category: 'ai-content',
+    icon: FileEdit,
+    color: 'from-blue-500 to-indigo-600',
+    accentColor: '217, 91%, 60%',
+    tags: ['cover letter', 'AI', 'job application', 'resume', 'career', 'free'],
+    featured: true,
+    new: true,
+    popular: false,
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'AI Cover Letter Generator',
+      url: 'https://toolify-iota-gules.vercel.app/tools/cover-letter-generator',
+      description: 'Generate a professional cover letter tailored to any job description using AI. Free, no signup required.',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Any',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
   {
     id: 'ai-text-enhancer',
     slug: 'ai-text-enhancer',
