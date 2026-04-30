@@ -61,7 +61,7 @@ const nextConfig = {
       const originalExternals = config.externals
       config.externals = [
         ...(Array.isArray(originalExternals) ? originalExternals : [originalExternals]),
-        ({ request }: { request: string }, callback: Function) => {
+        ({ request }, callback) => {
           if (request && (request.includes('ort-wasm') || request.includes('ort.webgpu'))) {
             return callback(null, `commonjs ${request}`)
           }
