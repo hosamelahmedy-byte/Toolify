@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
+import { BookOpen } from 'lucide-react'
 import { ToolLayout } from '@/components/layout/ToolLayout'
 import { ToolSkeleton } from '@/components/ui/LazyTool'
 
@@ -21,13 +22,13 @@ export default function QuizGeneratorToolPage() {
       description="Generate custom quizzes on any topic with AI. Multiple choice, true/false, or mixed. Free, no signup."
       category="AI Content"
       categoryHref="/tools/ai-content"
-      icon={undefined as any}
+      icon={BookOpen}
       gradient="from-violet-500 to-indigo-600"
       accentColor="rgba(139, 92, 246, 0.3)"
       relatedTools={[
           { name: 'Flashcards Generator', slug: 'flashcards-generator' },
           { name: 'PDF Summarizer', slug: 'pdf-summarizer' },
-          { name: 'AI Text Enhancer', slug: 'ai-text-enhancer' }
+          { name: 'AI Text Enhancer', slug: 'ai-text-enhancer' },
       ]}
     >
       <QuizGeneratorTool />
