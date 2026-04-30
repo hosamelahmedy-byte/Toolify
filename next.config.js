@@ -24,36 +24,65 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
 
-  // ── Webpack — fix @imgly/background-removal WASM/ESM ───────
+  // ── Webpack — fix @huggingface/transformers for browser ────
   webpack: (config, { isServer }) => {
-    // Exclude ONNX Runtime node bindings from client bundle
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'onnxruntime-node': false,
-    }
-
-    // Treat .mjs files from onnxruntime as ESM modules
-    config.module.rules.push({
-      test: /\.m?js$/,
-      include: /node_modules\/(onnxruntime-web|@imgly)/,
-      type: 'javascript/auto',
-      resolve: { fullySpecified: false },
-    })
-
-    // Don't bundle WASM files — serve them as static assets
-    config.module.rules.push({
-      test: /\.wasm$/,
-      type: 'asset/resource',
-    })
-
     if (!isServer) {
+      // Force browser build of transformers.js (not node build)
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@huggingface/transformers': '@huggingface/transformers/dist/transformers.web.js',
+        // Exclude node-only packages
+        'onnxruntime-node': false,
+        'sharp': false,
+      }
+
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
         path: false,
         crypto: false,
+        stream: false,
+        buffer: false,
       }
     }
+
+    if (isServer) {
+      // Also alias on server to avoid WASM resolution errors
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@huggingface/transformers': '@huggingface/transformers/dist/transformers.web.js',
+        'onnxruntime-node': false,
+        'sharp': false,
+        'ort-wasm-simd-threaded.asyncify.wasm': false,
+        'ort.webgpu.bundle.min.mjs': false,
+      }
+
+      // Treat as external to avoid bundling WASM on server
+      const originalExternals = config.externals
+      config.externals = [
+        ...(Array.isArray(originalExternals) ? originalExternals : [originalExternals]),
+        ({ request }: { request: string }, callback: Function) => {
+          if (request && (request.includes('ort-wasm') || request.includes('ort.webgpu'))) {
+            return callback(null, `commonjs ${request}`)
+          }
+          callback()
+        },
+      ]
+    }
+
+    // Handle .wasm files as assets
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'asset/resource',
+    })
+
+    // Handle .mjs ESM files from onnxruntime
+    config.module.rules.push({
+      test: /\.m?js$/,
+      include: /node_modules\/(onnxruntime-web|@huggingface)/,
+      type: 'javascript/auto',
+      resolve: { fullySpecified: false },
+    })
 
     return config
   },
@@ -64,34 +93,31 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          { key: 'X-Frame-Options',           value: 'DENY' },
-          { key: 'X-Content-Type-Options',     value: 'nosniff' },
-          { key: 'Referrer-Policy',            value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy',         value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'X-Frame-Options',         value: 'DENY' },
+          { key: 'X-Content-Type-Options',   value: 'nosniff' },
+          { key: 'Referrer-Policy',          value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy',       value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
-      // Required for SharedArrayBuffer (WASM multi-threading)
+      // COOP/COEP required for SharedArrayBuffer (WASM threads)
       {
         source: '/tools/background-remover',
         headers: [
-          { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy',  value: 'require-corp' },
+          { key: 'Cross-Origin-Opener-Policy',  value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
         ],
       },
-      // Immutable cache for static assets
       {
         source: '/_next/static/(.*)',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
-      // Service Worker — no cache
       {
         source: '/sw.js',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+          { key: 'Cache-Control',          value: 'public, max-age=0, must-revalidate' },
           { key: 'Service-Worker-Allowed', value: '/' },
         ],
       },
-      // Manifest
       {
         source: '/manifest.json',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400' }],
