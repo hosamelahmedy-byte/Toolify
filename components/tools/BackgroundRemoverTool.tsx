@@ -3,7 +3,9 @@
 import { useState, useCallback, useRef } from 'react'
 import { UploadCloud, Download, RotateCcw, ImageIcon } from 'lucide-react'
 
-type ProcessingState = 'idle' | 'loading-model' | 'processing' | 'done' | 'error'
+const WORKER_URL = 'https://rmbg-worker.toolify-hosam.workers.dev'
+
+type ProcessingState = 'idle' | 'processing' | 'done' | 'error'
 
 export function BackgroundRemoverTool() {
   const [original, setOriginal] = useState<string | null>(null)
@@ -28,79 +30,40 @@ export function BackgroundRemoverTool() {
     setErrorMsg(null)
     setResult(null)
     setProgress(0)
+    setState('processing')
 
     const originalUrl = URL.createObjectURL(file)
     setOriginal(originalUrl)
 
     try {
-      setState('loading-model')
-      setProgress(10)
+      setProgress(20)
 
-      const { AutoModel, AutoProcessor, env, RawImage } =
-        await import('@huggingface/transformers')
+      const formData = new FormData()
+      formData.append('image', file)
 
-      env.allowLocalModels = false
-      env.useBrowserCache = true
+      setProgress(40)
 
-      setProgress(25)
-
-      const model = await AutoModel.from_pretrained('briaai/RMBG-1.4', {
-        config: { model_type: 'custom' },
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        body: formData,
       })
 
-      const processor = await AutoProcessor.from_pretrained('briaai/RMBG-1.4', {
-        config: {
-          do_normalize: true,
-          do_pad: false,
-          do_rescale: true,
-          do_resize: true,
-          image_mean: [0.5, 0.5, 0.5],
-          feature_extractor_type: 'ImageFeatureExtractor',
-          image_std: [1, 1, 1],
-          resample: 2,
-          rescale_factor: 0.00392156862745098,
-          size: { width: 1024, height: 1024 },
-        },
-      })
+      setProgress(80)
 
-      setState('processing')
-      setProgress(50)
-
-      const img = await RawImage.fromURL(originalUrl)
-      setProgress(65)
-
-      const { pixel_values } = await processor(img)
-      setProgress(75)
-
-      const { output } = await model({ input: pixel_values })
-      setProgress(88)
-
-      // Apply mask to original image via canvas
-      const mask = await RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(img.width, img.height)
-
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')!
-
-      const imgEl = new Image()
-      imgEl.crossOrigin = 'anonymous'
-      imgEl.src = originalUrl
-      await new Promise<void>((res) => { imgEl.onload = () => res() })
-      ctx.drawImage(imgEl, 0, 0)
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      for (let i = 0; i < mask.data.length; i++) {
-        imageData.data[i * 4 + 3] = (mask.data as unknown as number[])[i]
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(err.error || 'Worker error')
       }
-      ctx.putImageData(imageData, 0, 0)
+
+      const blob = await res.blob()
+      const resultUrl = URL.createObjectURL(blob)
 
       setProgress(100)
-      setResult(canvas.toDataURL('image/png'))
+      setResult(resultUrl)
       setState('done')
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err)
-      setErrorMsg('Failed to remove background. Please try a different image.')
+      setErrorMsg('Failed to remove background. Please try again.')
       setState('error')
     }
   }, [])
@@ -124,6 +87,7 @@ export function BackgroundRemoverTool() {
 
   const handleReset = () => {
     if (original) URL.revokeObjectURL(original)
+    if (result) URL.revokeObjectURL(result)
     setOriginal(null)
     setResult(null)
     setState('idle')
@@ -131,8 +95,6 @@ export function BackgroundRemoverTool() {
     setErrorMsg(null)
     setView('split')
   }
-
-  const isProcessing = state === 'loading-model' || state === 'processing'
 
   const checkerStyle = {
     backgroundImage: `linear-gradient(45deg, #d1d5db 25%, transparent 25%),
@@ -178,7 +140,7 @@ export function BackgroundRemoverTool() {
 
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Private', desc: 'Processed in browser' },
+            { label: 'AI-Powered', desc: 'RMBG-1.4 model' },
             { label: 'No Watermark', desc: 'Clean PNG download' },
             { label: 'No Limits', desc: 'Unlimited images' },
           ].map((f) => (
@@ -193,7 +155,7 @@ export function BackgroundRemoverTool() {
   }
 
   // ── Processing ─────────────────────────────────────────────
-  if (isProcessing) {
+  if (state === 'processing') {
     return (
       <div className="space-y-6">
         <div className="relative rounded-2xl overflow-hidden bg-muted/40 aspect-video flex items-center justify-center">
@@ -201,15 +163,13 @@ export function BackgroundRemoverTool() {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <div className="w-10 h-10 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin" />
             <p className="text-sm text-muted-foreground text-center px-4">
-              {state === 'loading-model'
-                ? 'Loading AI model… (first time may take 10–20 seconds)'
-                : 'Removing background…'}
+              Removing background with AI…
             </p>
           </div>
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{state === 'loading-model' ? 'Loading model' : 'Processing'}</span>
+            <span>Processing</span>
             <span>{progress}%</span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
