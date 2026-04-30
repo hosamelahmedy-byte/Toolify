@@ -45,18 +45,19 @@ export function PDFSummarizerTool() {
     try {
       const pdfText = await extractTextFromPDF(file)
       if (!pdfText.trim()) { setError('Could not extract text from this PDF.'); setLoading(false); return }
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GROQ_API_KEY}` },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-          system: `Summarize this document. Return ONLY valid JSON: {"title":"string","summary":"string","keyPoints":["string"],"wordCount":number,"readingTime":"string"}`,
-          messages: [{ role: 'user', content: `Summarize:\n\n${pdfText}` }],
+          model: 'llama-3.1-8b-instant', max_tokens: 1000,
+          messages: [
+            { role: 'system', content: `Summarize this document. Return ONLY valid JSON: {"title":"string","summary":"string","keyPoints":["string"],"wordCount":number,"readingTime":"string"}` },
+            { role: 'user', content: `Summarize:\n\n${pdfText }` }],
         }),
       })
       if (!res.ok) throw new Error('Failed')
       const data = await res.json() as any
-      const text = data.content?.find((b: any) => b.type === 'text')?.text ?? ''
+      const text = data.choices?.[0]?.message?.content ?? ''
       setResult(JSON.parse(text.replace(/```json|```/g, '').trim()))
     } catch { setError('Failed to summarize PDF. Please try again.') }
     finally { setLoading(false) }

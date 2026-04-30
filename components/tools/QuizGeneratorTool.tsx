@@ -90,18 +90,19 @@ export function QuizGeneratorTool() {
     if (!config.topic.trim()) return
     setLoading(true); setError(null); setQuiz(null); setUserAnswers({}); setShowResult(false)
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GROQ_API_KEY}` },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-          system: `You are a quiz generator. Return ONLY valid JSON with this structure: {"title":"string","description":"string","questions":[{"id":1,"question":"string","options":[{"label":"A","text":"string"},{"label":"B","text":"string"},{"label":"C","text":"string"},{"label":"D","text":"string"}],"correctAnswer":"A","explanation":"string"}]}`,
-          messages: [{ role: 'user', content: `Generate a ${config.difficulty} quiz about "${config.topic}". ${config.numQuestions} questions. Type: ${config.questionType}.` }],
+          model: 'llama-3.1-8b-instant', max_tokens: 1000,
+          messages: [
+            { role: 'system', content: `You are a quiz generator. Return ONLY valid JSON with this structure: {"title":"string","description":"string","questions":[{"id":1,"question":"string","options":[{"label":"A","text":"string"},{"label":"B","text":"string"},{"label":"C","text":"string"},{"label":"D","text":"string"}],"correctAnswer":"A","explanation":"string"}]}` },
+            { role: 'user', content: `Generate a ${config.difficulty } quiz about "${config.topic}". ${config.numQuestions} questions. Type: ${config.questionType}.` }],
         }),
       })
       if (!res.ok) throw new Error('Failed')
       const data = await res.json() as any
-      const text = data.content?.find((b: any) => b.type === 'text')?.text ?? ''
+      const text = data.choices?.[0]?.message?.content ?? ''
       setQuiz(JSON.parse(text.replace(/```json|```/g, '').trim()))
     } catch { setError('Failed to generate quiz. Please try again.') }
     finally { setLoading(false) }

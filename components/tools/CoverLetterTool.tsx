@@ -103,20 +103,21 @@ Return ONLY the cover letter text, no explanations or headers.`
     const userPrompt = `Job Description:\n${jobDescription.slice(0, 2000)}\n\nMy Experience & Skills:\n${experience.slice(0, 1500)}${applicantName ? `\n\nApplicant Name: ${applicantName}` : ''}`
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GROQ_API_KEY}` },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'llama-3.1-8b-instant',
           max_tokens: 1000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }],
         }),
       })
 
       if (!res.ok) throw new Error('API request failed')
       const data = await res.json() as any
-      const text = data.content?.find((b: any) => b.type === 'text')?.text ?? ''
+      const text = data.choices?.[0]?.message?.content ?? ''
       setResult(text.trim())
     } catch {
       setError('Failed to generate cover letter. Please try again.')
