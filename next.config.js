@@ -24,6 +24,40 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
 
+  // ── Webpack — fix @imgly/background-removal WASM/ESM ───────
+  webpack: (config, { isServer }) => {
+    // Exclude ONNX Runtime node bindings from client bundle
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'onnxruntime-node': false,
+    }
+
+    // Treat .mjs files from onnxruntime as ESM modules
+    config.module.rules.push({
+      test: /\.m?js$/,
+      include: /node_modules\/(onnxruntime-web|@imgly)/,
+      type: 'javascript/auto',
+      resolve: { fullySpecified: false },
+    })
+
+    // Don't bundle WASM files — serve them as static assets
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'asset/resource',
+    })
+
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      }
+    }
+
+    return config
+  },
+
   // ── Headers ────────────────────────────────────────────────
   async headers() {
     return [
@@ -34,6 +68,14 @@ const nextConfig = {
           { key: 'X-Content-Type-Options',     value: 'nosniff' },
           { key: 'Referrer-Policy',            value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy',         value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+      // Required for SharedArrayBuffer (WASM multi-threading)
+      {
+        source: '/tools/background-remover',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy',  value: 'require-corp' },
         ],
       },
       // Immutable cache for static assets
