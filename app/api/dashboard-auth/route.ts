@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const body = await request.json() as Record<string, unknown>
   const secret = process.env.DASHBOARD_SECRET
 
   if (!secret) {
@@ -17,11 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Biometric auth — WebAuthn verification done client-side
-  // We trust the client assertion here (acceptable for personal dashboard)
-  // For production: verify the WebAuthn assertion server-side
   if (body.biometric === true) {
-    // Only allow biometric if a credential has been registered
-    // (client already verified with platform authenticator)
     authenticated = true
   }
 
@@ -35,7 +30,7 @@ export async function POST(request: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: 60 * 60 * 24,
     path: '/',
   })
 
