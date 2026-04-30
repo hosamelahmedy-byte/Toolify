@@ -1,13 +1,9 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { UploadCloud, Download, RotateCcw, ImageIcon, Loader2 } from 'lucide-react'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { UploadCloud, Download, RotateCcw, ImageIcon } from 'lucide-react'
 
 type ProcessingState = 'idle' | 'loading-model' | 'processing' | 'done' | 'error'
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function BackgroundRemoverTool() {
   const [original, setOriginal] = useState<string | null>(null)
@@ -33,7 +29,6 @@ export function BackgroundRemoverTool() {
     setResult(null)
     setProgress(0)
 
-    // Show original preview
     const originalUrl = URL.createObjectURL(file)
     setOriginal(originalUrl)
 
@@ -41,24 +36,67 @@ export function BackgroundRemoverTool() {
       setState('loading-model')
       setProgress(10)
 
-      // Dynamically import to avoid SSR issues
-      const { removeBackground } = await import('@imgly/background-removal')
+      const { AutoModel, AutoProcessor, env, RawImage } =
+        await import('@huggingface/transformers')
 
-      setProgress(30)
-      setState('processing')
+      env.allowLocalModels = false
+      env.useBrowserCache = true
 
-      const blob = await removeBackground(file, {
-        progress: (key: string, current: number, total: number) => {
-          if (key === 'compute:inference') {
-            const pct = Math.round((current / total) * 60) + 30
-            setProgress(Math.min(pct, 90))
-          }
+      setProgress(25)
+
+      const model = await AutoModel.from_pretrained('briaai/RMBG-1.4', {
+        config: { model_type: 'custom' },
+      })
+
+      const processor = await AutoProcessor.from_pretrained('briaai/RMBG-1.4', {
+        config: {
+          do_normalize: true,
+          do_pad: false,
+          do_rescale: true,
+          do_resize: true,
+          image_mean: [0.5, 0.5, 0.5],
+          feature_extractor_type: 'ImageFeatureExtractor',
+          image_std: [1, 1, 1],
+          resample: 2,
+          rescale_factor: 0.00392156862745098,
+          size: { width: 1024, height: 1024 },
         },
       })
 
+      setState('processing')
+      setProgress(50)
+
+      const img = await RawImage.fromURL(originalUrl)
+      setProgress(65)
+
+      const { pixel_values } = await processor(img)
+      setProgress(75)
+
+      const { output } = await model({ input: pixel_values })
+      setProgress(88)
+
+      // Apply mask to original image via canvas
+      const mask = await RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(img.width, img.height)
+
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')!
+
+      const imgEl = new Image()
+      imgEl.crossOrigin = 'anonymous'
+      imgEl.src = originalUrl
+      await new Promise<void>((res) => { imgEl.onload = () => res() })
+      ctx.drawImage(imgEl, 0, 0)
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      for (let i = 0; i < mask.data.length; i++) {
+        imageData.data[i * 4 + 3] = (mask.data as unknown as number[])[i]
+      }
+      ctx.putImageData(imageData, 0, 0)
+
       setProgress(100)
-      const resultUrl = URL.createObjectURL(blob)
-      setResult(resultUrl)
+      setResult(canvas.toDataURL('image/png'))
       setState('done')
     } catch (err) {
       console.error(err)
@@ -86,7 +124,6 @@ export function BackgroundRemoverTool() {
 
   const handleReset = () => {
     if (original) URL.revokeObjectURL(original)
-    if (result) URL.revokeObjectURL(result)
     setOriginal(null)
     setResult(null)
     setState('idle')
@@ -97,15 +134,17 @@ export function BackgroundRemoverTool() {
 
   const isProcessing = state === 'loading-model' || state === 'processing'
 
-  const stateLabel = {
-    idle: '',
-    'loading-model': 'Loading AI model… (first time may take a few seconds)',
-    processing: 'Removing background…',
-    done: '',
-    error: '',
-  }[state]
+  const checkerStyle = {
+    backgroundImage: `linear-gradient(45deg, #d1d5db 25%, transparent 25%),
+      linear-gradient(-45deg, #d1d5db 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #d1d5db 75%),
+      linear-gradient(-45deg, transparent 75%, #d1d5db 75%)`,
+    backgroundSize: '16px 16px',
+    backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
+    backgroundColor: '#f9fafb',
+  }
 
-  // ── Upload Screen ──────────────────────────────────────────
+  // ── Upload ─────────────────────────────────────────────────
   if (!original) {
     return (
       <div className="space-y-4">
@@ -114,11 +153,8 @@ export function BackgroundRemoverTool() {
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all
-            ${dragging
-              ? 'border-pink-500 bg-pink-500/5'
-              : 'border-border hover:border-pink-500/50 hover:bg-pink-500/5'
-            }`}
+          className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all
+            ${dragging ? 'border-pink-500 bg-pink-500/5' : 'border-border hover:border-pink-500/50 hover:bg-pink-500/5'}`}
         >
           <input
             ref={inputRef}
@@ -138,12 +174,9 @@ export function BackgroundRemoverTool() {
           </div>
         </div>
 
-        {errorMsg && (
-          <p className="text-sm text-destructive text-center">{errorMsg}</p>
-        )}
+        {errorMsg && <p className="text-sm text-destructive text-center">{errorMsg}</p>}
 
-        {/* Features */}
-        <div className="grid grid-cols-3 gap-3 mt-2">
+        <div className="grid grid-cols-3 gap-3">
           {[
             { label: 'Private', desc: 'Processed in browser' },
             { label: 'No Watermark', desc: 'Clean PNG download' },
@@ -159,20 +192,21 @@ export function BackgroundRemoverTool() {
     )
   }
 
-  // ── Processing Screen ──────────────────────────────────────
+  // ── Processing ─────────────────────────────────────────────
   if (isProcessing) {
     return (
       <div className="space-y-6">
-        {/* Preview */}
         <div className="relative rounded-2xl overflow-hidden bg-muted/40 aspect-video flex items-center justify-center">
           <img src={original} alt="Original" className="max-h-64 object-contain opacity-40" />
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="w-10 h-10 text-pink-400 animate-spin" />
-            <p className="text-sm text-muted-foreground text-center px-4">{stateLabel}</p>
+            <div className="w-10 h-10 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground text-center px-4">
+              {state === 'loading-model'
+                ? 'Loading AI model… (first time may take 10–20 seconds)'
+                : 'Removing background…'}
+            </p>
           </div>
         </div>
-
-        {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{state === 'loading-model' ? 'Loading model' : 'Processing'}</span>
@@ -180,7 +214,7 @@ export function BackgroundRemoverTool() {
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div
-              className="bg-gradient-to-r from-pink-500 to-rose-400 h-2 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-pink-500 to-rose-400 h-2 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -189,10 +223,9 @@ export function BackgroundRemoverTool() {
     )
   }
 
-  // ── Result Screen ──────────────────────────────────────────
+  // ── Result ─────────────────────────────────────────────────
   return (
     <div className="space-y-5">
-      {/* View Toggle */}
       <div className="flex gap-2 bg-muted rounded-xl p-1 w-fit mx-auto">
         {(['split', 'original', 'result'] as const).map((v) => (
           <button
@@ -207,7 +240,6 @@ export function BackgroundRemoverTool() {
         ))}
       </div>
 
-      {/* Image Display */}
       {view === 'split' && (
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl overflow-hidden bg-muted/40 flex flex-col">
@@ -219,43 +251,30 @@ export function BackgroundRemoverTool() {
               <img src={original!} alt="Original" className="max-h-52 w-full object-contain rounded-lg" />
             </div>
           </div>
-          <div className="rounded-2xl overflow-hidden bg-muted/40 flex flex-col">
-            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border">
+          <div className="rounded-2xl overflow-hidden flex flex-col" style={checkerStyle}>
+            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/40 bg-white/60">
               <span className="w-3.5 h-3.5 rounded bg-gradient-to-br from-pink-400 to-rose-400 flex-shrink-0" />
-              <span className="text-xs text-muted-foreground font-medium">Result</span>
+              <span className="text-xs text-zinc-600 font-medium">Result</span>
             </div>
-            <div
-              className="flex-1 flex items-center justify-center p-3"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='8' height='8' fill='%23e5e7eb'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23e5e7eb'/%3E%3C/svg%3E")`,
-                backgroundSize: '16px 16px',
-              }}
-            >
-              <img src={result!} alt="Result" className="max-h-52 w-full object-contain rounded-lg" />
+            <div className="flex-1 flex items-center justify-center p-3">
+              {result && <img src={result} alt="Result" className="max-h-52 w-full object-contain rounded-lg" />}
             </div>
           </div>
         </div>
       )}
 
       {view === 'original' && (
-        <div className="rounded-2xl overflow-hidden bg-muted/40 flex items-center justify-center p-4 min-h-[280px]">
+        <div className="rounded-2xl bg-muted/40 flex items-center justify-center p-4 min-h-[280px]">
           <img src={original!} alt="Original" className="max-h-72 object-contain" />
         </div>
       )}
 
-      {view === 'result' && (
-        <div
-          className="rounded-2xl overflow-hidden flex items-center justify-center p-4 min-h-[280px]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect width='10' height='10' fill='%23e5e7eb'/%3E%3Crect x='10' y='10' width='10' height='10' fill='%23e5e7eb'/%3E%3C/svg%3E")`,
-            backgroundSize: '20px 20px',
-          }}
-        >
-          <img src={result!} alt="Result" className="max-h-72 object-contain" />
+      {view === 'result' && result && (
+        <div className="rounded-2xl flex items-center justify-center p-4 min-h-[280px]" style={checkerStyle}>
+          <img src={result} alt="Result" className="max-h-72 object-contain" />
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex gap-3">
         <button
           onClick={handleDownload}
@@ -268,17 +287,14 @@ export function BackgroundRemoverTool() {
         <button
           onClick={handleReset}
           className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border
-                     text-muted-foreground hover:text-foreground hover:border-foreground/30
-                     text-sm font-medium transition-all"
+                     text-muted-foreground hover:text-foreground text-sm font-medium transition-all"
         >
           <RotateCcw className="w-4 h-4" />
           New Image
         </button>
       </div>
 
-      {errorMsg && (
-        <p className="text-sm text-destructive text-center">{errorMsg}</p>
-      )}
+      {errorMsg && <p className="text-sm text-destructive text-center">{errorMsg}</p>}
     </div>
   )
 }
