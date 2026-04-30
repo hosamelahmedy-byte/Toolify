@@ -113,7 +113,7 @@ export default function PDFSummarizerPage() {
     for (let i = 1; i <= Math.min(pdf.numPages, 30); i++) {
       const page = await pdf.getPage(i)
       const content = await page.getTextContent()
-      text += content.items.map((item: { str?: string }) => item.str ?? '').join(' ') + '\n'
+      text += content.items.map((item) => ('str' in item ? item.str : '')).join(' ') + '\n'
     }
     return text.slice(0, 12000)
   }
