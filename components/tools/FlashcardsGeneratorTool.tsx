@@ -1,6 +1,6 @@
 'use client'
 
-mport { useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Layers, Sparkles, RotateCcw, Download, ChevronLeft, ChevronRight, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -222,8 +222,7 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
   const next = () => setCurrentIndex((i) => Math.min((deck?.cards.length ?? 1) - 1, i + 1))
 
   return (
-    <div className="space-y-6">
-                {/* Hero */}
+                    {/* Hero */}
           <div className="mb-10 text-center">
             <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 rounded-full px-4 py-1.5 text-xs font-medium text-sky-400 mb-4">
               <Sparkles className="w-3.5 h-3.5" />
@@ -309,12 +308,10 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Generating flashcards…
-    </div>
   ) : (
                   <>
                     <Layers className="w-4 h-4" />
                     Generate Flashcards
-    </div>
   )}
               </button>
 
@@ -408,6 +405,5 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
           )}
 
           <FAQSection />
-    </div>
   )
 }
