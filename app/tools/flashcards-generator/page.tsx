@@ -206,7 +206,7 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
         }),
       })
       if (!res.ok) throw new Error('API request failed')
-      const data = await res.json() as any
+      const data = await res.json() as any as any
       const text = data.content?.find((b: { type: string }) => b.type === 'text')?.text ?? ''
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed: GeneratedDeck = JSON.parse(clean)
@@ -460,3 +460,4 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
     </>
   )
 }
+

@@ -301,7 +301,7 @@ Make questions educational, clear, and with plausible wrong answers. Explanation
       })
 
       if (!res.ok) throw new Error('API request failed')
-      const data = await res.json() as any
+      const data = await res.json() as any as any
       const text = data.content?.find((b: { type: string }) => b.type === 'text')?.text ?? ''
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed: GeneratedQuiz = JSON.parse(clean)
@@ -597,3 +597,4 @@ Make questions educational, clear, and with plausible wrong answers. Explanation
     </>
   )
 }
+

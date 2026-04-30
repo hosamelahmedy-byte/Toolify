@@ -32,3 +32,4 @@ export function StatCard({ label, value, icon: Icon, color, subtext, className }
     </div>
   )
 }
+

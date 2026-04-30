@@ -132,3 +132,4 @@ export function FavoriteButton({ slug }: { slug: string }) {
     </motion.button>
   )
 }
+

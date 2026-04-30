@@ -51,7 +51,7 @@ export function BackgroundRemoverTool() {
       setProgress(80)
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+        const err = await res.json() as any.catch(() => ({ error: 'Unknown error' }))
         throw new Error(err.error || 'Worker error')
       }
 
@@ -258,3 +258,4 @@ export function BackgroundRemoverTool() {
     </div>
   )
 }
+

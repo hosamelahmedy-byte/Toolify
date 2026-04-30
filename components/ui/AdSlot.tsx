@@ -56,3 +56,4 @@ export function AdSlot({ id, size, className, adSlot }: AdSlotProps) {
     </div>
   )
 }
+

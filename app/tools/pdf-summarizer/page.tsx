@@ -177,7 +177,7 @@ keyPoints should be 5-7 concise bullet-point style strings.`
       })
 
       if (!res.ok) throw new Error('API request failed')
-      const data = await res.json() as any
+      const data = await res.json() as any as any
       const text = data.content?.find((b: { type: string }) => b.type === 'text')?.text ?? ''
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed: SummaryResult = JSON.parse(clean)
@@ -359,3 +359,4 @@ keyPoints should be 5-7 concise bullet-point style strings.`
     </>
   )
 }
+

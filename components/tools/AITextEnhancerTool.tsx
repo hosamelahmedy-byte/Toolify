@@ -75,7 +75,7 @@ export function AITextEnhancerTool() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: input, mode }),
       })
-      const data = await res.json()
+      const data = await res.json() as any
       if (!res.ok) throw new Error(data.error ?? 'Something went wrong.')
       setResult(data.result)
     } catch (err: unknown) {
@@ -280,3 +280,4 @@ export function AITextEnhancerTool() {
     </div>
   )
 }
+
