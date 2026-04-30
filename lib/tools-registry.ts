@@ -28,7 +28,6 @@ import {
   BookOpen,
   Layers,
   FileSearch,
-  ImageIcon,
 } from 'lucide-react'
 
 // ============================================================
