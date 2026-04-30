@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const data = await groqRes.json()
+    const data = await groqRes.json() as { choices?: { message?: { content?: string } }[] }
     const result = data.choices?.[0]?.message?.content?.trim()
 
     if (!result) {
