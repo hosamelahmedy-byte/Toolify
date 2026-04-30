@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   let text: string
   let mode: string
   try {
-    const body = await req.json()
+    const body = await req.json() as Record<string, string>
     text = (body.text ?? '').trim()
     mode = body.mode ?? 'enhance'
   } catch {
