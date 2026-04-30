@@ -26,12 +26,17 @@ const nextConfig = {
 
   // ── Webpack — fix @huggingface/transformers for browser ────
   webpack: (config, { isServer }) => {
+    if (isServer) {
+      // On server: mark transformers as external to avoid bundling WASM
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : [config.externals]),
+        '@huggingface/transformers',
+      ]
+    }
+
     if (!isServer) {
-      // Force browser build of transformers.js (not node build)
       config.resolve.alias = {
         ...config.resolve.alias,
-        '@huggingface/transformers': '@huggingface/transformers/dist/transformers.web.js',
-        // Exclude node-only packages
         'onnxruntime-node': false,
         'sharp': false,
       }
@@ -42,46 +47,13 @@ const nextConfig = {
         path: false,
         crypto: false,
         stream: false,
-        buffer: false,
       }
-    }
-
-    if (isServer) {
-      // Also alias on server to avoid WASM resolution errors
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@huggingface/transformers': '@huggingface/transformers/dist/transformers.web.js',
-        'onnxruntime-node': false,
-        'sharp': false,
-        'ort-wasm-simd-threaded.asyncify.wasm': false,
-        'ort.webgpu.bundle.min.mjs': false,
-      }
-
-      // Treat as external to avoid bundling WASM on server
-      const originalExternals = config.externals
-      config.externals = [
-        ...(Array.isArray(originalExternals) ? originalExternals : [originalExternals]),
-        ({ request }, callback) => {
-          if (request && (request.includes('ort-wasm') || request.includes('ort.webgpu'))) {
-            return callback(null, `commonjs ${request}`)
-          }
-          callback()
-        },
-      ]
     }
 
     // Handle .wasm files as assets
     config.module.rules.push({
       test: /\.wasm$/,
       type: 'asset/resource',
-    })
-
-    // Handle .mjs ESM files from onnxruntime
-    config.module.rules.push({
-      test: /\.m?js$/,
-      include: /node_modules\/(onnxruntime-web|@huggingface)/,
-      type: 'javascript/auto',
-      resolve: { fullySpecified: false },
     })
 
     return config
