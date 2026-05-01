@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: '/tools/ai-content', label: 'AI Content' },
   { href: '/tools/dev', label: 'Developer' },
   { href: '/tools/calculator', label: 'Calculators' },
+  { href: '/blog', label: 'Blog' },
 ]
 
 export function Navbar() {
