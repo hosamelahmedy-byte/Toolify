@@ -183,8 +183,10 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
         body: JSON.stringify({
           model: 'llama-3.1-8b-instant',
           max_tokens: 1000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
         }),
       })
       if (!res.ok) throw new Error('API request failed')
@@ -222,17 +224,8 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
   const next = () => setCurrentIndex((i) => Math.min((deck?.cards.length ?? 1) - 1, i + 1))
 
   return (
-                    {/* Hero */}
-          <div className="mb-10 text-center">
-            <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 rounded-full px-4 py-1.5 text-xs font-medium text-sky-400 mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              AI-Powered
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-3">Flashcards Generator</h1>
-            <p className="text-zinc-400 text-sm leading-relaxed max-w-md mx-auto">
-              Turn any topic or text into study flashcards instantly. Powered by AI, free, no signup.
-            </p>
-          </div>
+    <>
+
 
           {/* Config */}
           {!deck && (
@@ -308,11 +301,13 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Generating flashcards…
-  ) : (
+                  </>
+                ) : (
                   <>
                     <Layers className="w-4 h-4" />
                     Generate Flashcards
-  )}
+                  </>
+                )}
               </button>
 
               {error && <p className="text-red-400 text-xs text-center">{error}</p>}
@@ -405,5 +400,6 @@ Questions should be clear and concise. Answers should be 1-3 sentences maximum.`
           )}
 
           <FAQSection />
+    </>
   )
 }
