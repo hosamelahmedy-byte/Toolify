@@ -21,8 +21,8 @@ export function PDFSummarizerTool() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const extractTextFromPDF = async (file: File): Promise<string> => {
-    const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist')
-    GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`
+    const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist/legacy/build/pdf')
+    GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`
     const arrayBuffer = await file.arrayBuffer()
     const pdf = await getDocument({ data: arrayBuffer }).promise
     let text = ''
