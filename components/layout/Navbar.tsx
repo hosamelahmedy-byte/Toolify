@@ -19,7 +19,6 @@ const NAV_LINKS = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -66,16 +65,16 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            {/* Command Palette - Desktop */}
+            {/* Command Palette - Desktop only */}
           <div className="hidden md:block"><CommandPalette /></div>
-          {/* Search - Mobile */}
-          <button
-            onClick={() => setSearchOpen(true)}
+          {/* Search button - Mobile only */}
+          <Link
+            href="/search"
             className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl glass-card"
             aria-label="Search tools"
           >
             <Search size={16} />
-          </button>
+          </Link>
 
           {/* Theme Toggle */}
             {mounted && (
@@ -135,14 +134,6 @@ export function Navbar() {
             className="fixed top-[60px] left-4 right-4 z-[var(--z-dropdown)] glass-card-heavy border border-glass rounded-2xl p-4 md:hidden"
           >
             <div className="flex flex-col gap-1">
-              <Link
-                href="/search"
-                onClick={() => setMobileOpen(false)}
-                className="px-4 py-3 text-sm font-medium rounded-xl hover:bg-secondary transition-colors flex items-center gap-2"
-              >
-                <Search size={14} />
-                Search Tools
-              </Link>
               {NAV_LINKS.map(({ href, label }) => (
                 <Link
                   key={href}
