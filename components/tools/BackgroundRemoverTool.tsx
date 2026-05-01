@@ -3,15 +3,12 @@
 import { useState, useCallback, useRef } from 'react'
 import { UploadCloud, Download, RotateCcw, ImageIcon } from 'lucide-react'
 
-const WORKER_URL = 'https://rmbg-worker.toolify-hosam.workers.dev'
-
 type ProcessingState = 'idle' | 'processing' | 'done' | 'error'
 
 export function BackgroundRemoverTool() {
   const [original, setOriginal] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
   const [state, setState] = useState<ProcessingState>('idle')
-  const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [view, setView] = useState<'split' | 'result' | 'original'>('split')
@@ -29,41 +26,37 @@ export function BackgroundRemoverTool() {
 
     setErrorMsg(null)
     setResult(null)
-    setProgress(0)
     setState('processing')
 
     const originalUrl = URL.createObjectURL(file)
     setOriginal(originalUrl)
 
     try {
-      setProgress(20)
-
       const formData = new FormData()
-      formData.append('image', file)
+      formData.append('image_file', file)
+      formData.append('size', 'auto')
 
-      setProgress(40)
-
-      const res = await fetch(WORKER_URL, {
+      const res = await fetch('https://api.remove.bg/v1.0/removebg', {
         method: 'POST',
+        headers: {
+          'X-Api-Key': process.env.NEXT_PUBLIC_REMOVEBG_API_KEY || '',
+        },
         body: formData,
       })
 
-      setProgress(80)
-
       if (!res.ok) {
-        const err = (await res.json().catch(() => ({ error: 'Unknown error' }))) as any
-        throw new Error(err.error || 'Worker error')
+        const err = await res.json().catch(() => ({})) as any
+        if (res.status === 402) throw new Error('Monthly limit reached. Please try again next month.')
+        if (res.status === 403) throw new Error('Invalid API key.')
+        throw new Error(err?.errors?.[0]?.title || 'Failed to remove background.')
       }
 
       const blob = await res.blob()
       const resultUrl = URL.createObjectURL(blob)
-
-      setProgress(100)
       setResult(resultUrl)
       setState('done')
-    } catch (err: unknown) {
-      console.error(err)
-      setErrorMsg('Failed to remove background. Please try again.')
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to remove background. Please try again.')
       setState('error')
     }
   }, [])
@@ -91,7 +84,6 @@ export function BackgroundRemoverTool() {
     setOriginal(null)
     setResult(null)
     setState('idle')
-    setProgress(0)
     setErrorMsg(null)
     setView('split')
   }
@@ -106,7 +98,6 @@ export function BackgroundRemoverTool() {
     backgroundColor: '#f9fafb',
   }
 
-  // ── Upload ─────────────────────────────────────────────────
   if (!original) {
     return (
       <div className="space-y-4">
@@ -118,20 +109,13 @@ export function BackgroundRemoverTool() {
           className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all
             ${dragging ? 'border-pink-500 bg-pink-500/5' : 'border-border hover:border-pink-500/50 hover:bg-pink-500/5'}`}
         >
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-          />
+          <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
           <div className="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center">
             <UploadCloud className="w-8 h-8 text-pink-400" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-foreground">
-              Drop your image here or <span className="text-pink-400">browse</span>
-            </p>
+            <p className="text-sm font-medium">Drop your image here or <span className="text-pink-400">browse</span></p>
             <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WebP · Max 10MB</p>
           </div>
         </div>
@@ -140,12 +124,12 @@ export function BackgroundRemoverTool() {
 
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'AI-Powered', desc: 'RMBG-1.4 model' },
+            { label: 'AI-Powered', desc: 'remove.bg engine' },
             { label: 'No Watermark', desc: 'Clean PNG download' },
-            { label: 'No Limits', desc: 'Unlimited images' },
+            { label: 'High Quality', desc: 'Auto HD output' },
           ].map((f) => (
             <div key={f.label} className="bg-muted/40 rounded-xl p-3 text-center">
-              <p className="text-xs font-semibold text-foreground">{f.label}</p>
+              <p className="text-xs font-semibold">{f.label}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{f.desc}</p>
             </div>
           ))}
@@ -154,7 +138,6 @@ export function BackgroundRemoverTool() {
     )
   }
 
-  // ── Processing ─────────────────────────────────────────────
   if (state === 'processing') {
     return (
       <div className="space-y-6">
@@ -162,39 +145,21 @@ export function BackgroundRemoverTool() {
           <img src={original} alt="Original" className="max-h-64 object-contain opacity-40" />
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
             <div className="w-10 h-10 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground text-center px-4">
-              Removing background with AI…
-            </p>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Processing</span>
-            <span>{progress}%</span>
-          </div>
-          <div className="w-full bg-muted rounded-full h-2">
-            <div
-              className="bg-gradient-to-r from-pink-500 to-rose-400 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
+            <p className="text-sm text-muted-foreground">Removing background with AI…</p>
           </div>
         </div>
       </div>
     )
   }
 
-  // ── Result ─────────────────────────────────────────────────
   return (
     <div className="space-y-5">
       <div className="flex gap-2 bg-muted rounded-xl p-1 w-fit mx-auto">
         {(['split', 'original', 'result'] as const).map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
+          <button key={v} onClick={() => setView(v)}
             className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-all capitalize ${
               view === v ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
+            }`}>
             {v}
           </button>
         ))}
@@ -236,21 +201,13 @@ export function BackgroundRemoverTool() {
       )}
 
       <div className="flex gap-3">
-        <button
-          onClick={handleDownload}
-          className="flex-1 flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-500
-                     text-white font-semibold text-sm py-3 rounded-xl transition-all active:scale-[0.98]"
-        >
-          <Download className="w-4 h-4" />
-          Download PNG
+        <button onClick={handleDownload}
+          className="flex-1 flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-500 text-white font-semibold text-sm py-3 rounded-xl transition-all active:scale-[0.98]">
+          <Download className="w-4 h-4" />Download PNG
         </button>
-        <button
-          onClick={handleReset}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border
-                     text-muted-foreground hover:text-foreground text-sm font-medium transition-all"
-        >
-          <RotateCcw className="w-4 h-4" />
-          New Image
+        <button onClick={handleReset}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border text-muted-foreground hover:text-foreground text-sm font-medium transition-all">
+          <RotateCcw className="w-4 h-4" />New Image
         </button>
       </div>
 
@@ -258,4 +215,3 @@ export function BackgroundRemoverTool() {
     </div>
   )
 }
-
