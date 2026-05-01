@@ -1,0 +1,77 @@
+name: Generate Weekly Blog Post
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9 AM UTC
+  workflow_dispatch:      # Manual trigger
+
+jobs:
+  generate-post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Generate blog post with Groq
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          WEEK=$(date +%U)
+          
+          TOPICS=(
+            "best free AI tools for students"
+            "how to remove image background for free"
+            "AI tools for content creators"
+            "free PDF tools online"
+            "how to generate a cover letter with AI"
+            "best AI quiz generators for teachers"
+            "productivity tools for developers"
+            "free online calculators for students"
+            "AI writing tools comparison"
+            "how to use flashcards for studying"
+          )
+          
+          INDEX=$((($WEEK) % ${#TOPICS[@]}))
+          TOPIC="${TOPICS[$INDEX]}"
+          
+          echo "Generating post about: $TOPIC"
+          
+          RESPONSE=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $GROQ_API_KEY" \
+            -d "{
+              \"model\": \"llama-3.1-8b-instant\",
+              \"max_tokens\": 2000,
+              \"messages\": [
+                {
+                  \"role\": \"system\",
+                  \"content\": \"You are an SEO content writer. Write a helpful blog post in Markdown format with frontmatter. Format: ---\\ntitle: \\\"Title here\\\"\\ndescription: \\\"Meta description under 160 chars\\\"\\ndate: \\\"$DATE\\\"\\ntags: [\\\"tag1\\\", \\\"tag2\\\", \\\"tag3\\\"]\\n---\\n\\n## Introduction\\n...\\n\\n## Section 1\\n...\\n\\n## Conclusion\\n... The post should be 600-800 words, practical, and helpful. No fluff.\"
+                },
+                {
+                  \"role\": \"user\",
+                  \"content\": \"Write a blog post about: $TOPIC. Target audience: people looking for free online tools.\"
+                }
+              ]
+            }")
+          
+          CONTENT=$(echo $RESPONSE | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['choices'][0]['message']['content'])")
+          
+          SLUG=$(echo "$TOPIC" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g')
+          FILENAME="content/blog/${DATE}-${SLUG}.md"
+          
+          mkdir -p content/blog
+          echo "$CONTENT" > "$FILENAME"
+          
+          echo "Created: $FILENAME"
+
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add content/blog/
+          git diff --staged --quiet || git commit -m "blog: auto-generate weekly post $(date +%Y-%m-%d)"
+          git push
