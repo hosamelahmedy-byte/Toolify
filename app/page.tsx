@@ -28,6 +28,7 @@ export default async function HomePage() {
       <Navbar />
       <main className="relative min-h-screen overflow-hidden">
         <HeroSection />
+        <BlogPreviewSection posts={latestPosts} />
         <div className="section-container py-5">
           <AdSlot size="leaderboard" id="home-hero-bottom" />
         </div>
@@ -42,7 +43,6 @@ export default async function HomePage() {
         <div className="section-container flex justify-center py-4">
           <AdSlot size="rectangle" id="home-btm-rect" />
         </div>
-        <BlogPreviewSection posts={latestPosts} />
         <CTASection />
         <div className="section-container py-6">
           <AdSlot size="leaderboard" id="home-footer-top" />
