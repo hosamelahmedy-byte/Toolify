@@ -3,7 +3,7 @@ name: Generate Weekly Blog Post
 on:
   schedule:
     - cron: '0 9 * * 1'  # Every Monday at 9 AM UTC
-  workflow_dispatch:      # Manual trigger
+  workflow_dispatch:
 
 jobs:
   generate-post:
@@ -15,31 +15,55 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Generate blog post with Groq
+      - name: Fetch AI news + Generate blog post
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
         run: |
           DATE=$(date +%Y-%m-%d)
+          DAY_NAME=$(date +%A)
+
+          # Fetch latest AI news from NewsAPI
+          echo "Fetching latest AI news..."
+          NEWS_RESPONSE=$(curl -s "https://newsapi.org/v2/everything?q=artificial+intelligence+tools&language=en&sortBy=publishedAt&pageSize=5&apiKey=$NEWS_API_KEY")
+
+          # Extract news headlines and descriptions
+          NEWS_CONTEXT=$(echo $NEWS_RESPONSE | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+articles = data.get('articles', [])[:5]
+output = []
+for a in articles:
+    title = a.get('title', '')
+    desc = a.get('description', '')
+    source = a.get('source', {}).get('name', '')
+    if title and desc:
+        output.append(f'- [{source}] {title}: {desc}')
+print('\n'.join(output))
+" 2>/dev/null || echo "No news available")
+
+          echo "News context: $NEWS_CONTEXT"
+
+          # Topics rotation
           WEEK=$(date +%U)
-          
           TOPICS=(
-            "best free AI tools for students"
-            "how to remove image background for free"
-            "AI tools for content creators"
-            "free PDF tools online"
-            "how to generate a cover letter with AI"
-            "best AI quiz generators for teachers"
-            "productivity tools for developers"
-            "free online calculators for students"
-            "AI writing tools comparison"
-            "how to use flashcards for studying"
+            "best free AI tools for students and productivity"
+            "how AI image tools are changing design workflows"
+            "free AI writing tools that actually work"
+            "AI tools for small business owners"
+            "how to use AI to generate better content"
+            "free PDF and document AI tools"
+            "AI tools for developers in 2026"
+            "how to study smarter with AI flashcards and quizzes"
+            "AI cover letter and resume tools"
+            "best free background remover tools online"
           )
-          
           INDEX=$((($WEEK) % ${#TOPICS[@]}))
           TOPIC="${TOPICS[$INDEX]}"
-          
-          echo "Generating post about: $TOPIC"
-          
+
+          echo "Topic: $TOPIC"
+
+          # Generate with Groq using NewsAPI context
           RESPONSE=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $GROQ_API_KEY" \
@@ -49,29 +73,40 @@ jobs:
               \"messages\": [
                 {
                   \"role\": \"system\",
-                  \"content\": \"You are an SEO content writer. Write a helpful blog post in Markdown format with frontmatter. Format: ---\\ntitle: \\\"Title here\\\"\\ndescription: \\\"Meta description under 160 chars\\\"\\ndate: \\\"$DATE\\\"\\ntags: [\\\"tag1\\\", \\\"tag2\\\", \\\"tag3\\\"]\\n---\\n\\n## Introduction\\n...\\n\\n## Section 1\\n...\\n\\n## Conclusion\\n... The post should be 600-800 words, practical, and helpful. No fluff.\"
+                  \"content\": \"You are a professional tech writer for a tools website. Write a blog post in Markdown with frontmatter.\n\nSTRICT RULES:\n1. Start with a real observation or stat, not a generic intro\n2. NEVER use: 'unleash', 'delve', 'landscape', 'revolutionize', 'game-changer', 'In today\\'s world', 'Let\\'s dive in'\n3. Use short paragraphs (2-3 sentences max)\n4. Include specific tool names, numbers, and real examples\n5. Write like a knowledgeable friend, not a marketing bot\n6. Mention real limitations or downsides of tools\n7. End with a practical tip or action the reader can take today\n8. Reference current AI news trends when relevant\n\nFormat:\n---\ntitle: \\\"Specific, useful title (not clickbait)\\\"\ndescription: \\\"One sentence that tells exactly what the reader will learn (under 155 chars)\\\"\ndate: \\\"$DATE\\\"\ntags: [\\\"tag1\\\", \\\"tag2\\\", \\\"tag3\\\"]\n---\n\n[article content in markdown, 600-800 words]\"
                 },
                 {
                   \"role\": \"user\",
-                  \"content\": \"Write a blog post about: $TOPIC. Target audience: people looking for free online tools.\"
+                  \"content\": \"Write a blog post about: $TOPIC\n\nThis week in AI news:\n$NEWS_CONTEXT\n\nUse the news as context/inspiration if relevant. Target audience: people who want practical free tools. Link to Toolify tools where relevant (e.g. toolify-iota-gules.vercel.app/tools/quiz-generator).\"
                 }
               ]
             }")
-          
-          CONTENT=$(echo $RESPONSE | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['choices'][0]['message']['content'])")
-          
-          SLUG=$(echo "$TOPIC" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g')
+
+          CONTENT=$(echo $RESPONSE | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print(data['choices'][0]['message']['content'])
+" 2>/dev/null)
+
+          if [ -z "$CONTENT" ]; then
+            echo "Error: Empty content from Groq"
+            exit 1
+          fi
+
+          SLUG=$(echo "$TOPIC" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g' | cut -c1-60)
           FILENAME="content/blog/${DATE}-${SLUG}.md"
-          
+
           mkdir -p content/blog
           echo "$CONTENT" > "$FILENAME"
-          
+
           echo "Created: $FILENAME"
+          echo "Preview:"
+          head -10 "$FILENAME"
 
       - name: Commit and push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add content/blog/
-          git diff --staged --quiet || git commit -m "blog: auto-generate weekly post $(date +%Y-%m-%d)"
+          git diff --staged --quiet || git commit -m "blog: weekly post $(date +%Y-%m-%d)"
           git push
