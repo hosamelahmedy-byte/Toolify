@@ -1,6 +1,7 @@
 // M7 ENHANCED — themeColor + canonical + Twitter card + Organization schema
 import type { Metadata, Viewport } from 'next'
 import { Providers } from './providers'
+import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
 
 // ============================================================
@@ -188,6 +189,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   )
